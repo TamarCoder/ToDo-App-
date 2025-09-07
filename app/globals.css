@@ -1,26 +1,177 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    background: #0f172a;
+    color: #f1f5f9;
+    line-height: 1.6;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1e293b;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* Smooth Transitions */
+* {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Custom Button Animations */
+.btn-hover {
+    @apply transform hover:scale-105 active:scale-95 transition-all duration-200;
+}
+
+/* Card Hover Effect */
+.card-hover {
+    @apply transform hover:translateY-[-2px] hover:shadow-lg transition-all duration-300;
+}
+
+/* Priority Colors */
+.priority-high {
+    @apply bg-red-500/20 border-red-500/30 text-red-300;
+}
+
+.priority-medium {
+    @apply bg-yellow-500/20 border-yellow-500/30 text-yellow-300;
+}
+
+.priority-low {
+    @apply bg-blue-500/20 border-blue-500/30 text-blue-300;
+}
+
+/* Status Colors */
+.status-completed {
+    @apply bg-green-500/20 border-green-500/30 text-green-300;
+}
+
+.status-pending {
+    @apply bg-gray-500/20 border-gray-500/30 text-gray-300;
+}
+
+/* Gradient Backgrounds */
+.gradient-primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.gradient-success {
+    background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+}
+
+.gradient-warning {
+    background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+}
+
+.gradient-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* Animation Classes */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.animate-fadeInUp {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.animate-slideInRight {
+    animation: slideInRight 0.5s ease-out;
+}
+
+.animate-bounceIn {
+    animation: bounceIn 0.6s ease-out;
+}
+
+/* Mobile First Responsive Utilities */
+@media (max-width: 640px) {
+    .mobile-hide {
+        display: none;
+    }
+}
+
+@media (min-width: 641px) {
+    .mobile-show {
+        display: none;
+    }
+}
+
+/* Focus Styles */
+input:focus,
+textarea:focus,
+select:focus,
+button:focus {
+    @apply outline-none ring-2 ring-blue-500 ring-opacity-50;
+}
+
+/* Loading Spinner */
+.spinner {
+    border: 2px solid #374151;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
