@@ -1,3 +1,4 @@
+"use client"
 import React from 'react';
 import { TrendingUp, TrendingDown, CheckCircle, Clock, AlertTriangle, Calendar, Target, Award } from 'lucide-react';
 import {useTheme} from "../context/context";

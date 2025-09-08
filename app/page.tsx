@@ -5,6 +5,8 @@ import Header from "./components/Header/Header";
 import StatsCard from "./components/StatsCard/StatsCard";
 import TodoForm from "./components/TodoForm/TodoForm";
 import FilterBar from "./components/FilterBar/FilterBar";
+import TodoList from "./components/TodoList/TodoList";
+import DeleteModal from "./components/DeleteModal/DeleteModal";
 
 
 export default function Home() {
@@ -22,9 +24,13 @@ export default function Home() {
                     <StatsCard/>
                     <TodoForm/>
                     <FilterBar/>
-
+                    <TodoList/>
                 </div>
             </main>
+
+            {/*<DeleteModal />*/}
         </div>
+
+
     )
 }
