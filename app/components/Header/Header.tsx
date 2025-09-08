@@ -1,5 +1,5 @@
 "use client"
-import React, {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
     CheckSquare,
     Bell,
@@ -14,234 +14,247 @@ import {
     Bookmark,
     LogOut
 } from 'lucide-react';
-import {useTheme} from '../context/context';
-import {SmileOutlined} from "@ant-design/icons";
-import {notification} from "antd";
+import { useTheme } from '../context/context';
+import { SmileOutlined } from "@ant-design/icons";
+import { notification } from "antd";
 
+// Constants
+const USER_DATA = {
+    name: 'John Doe',
+    email: 'john@example.com',
+    initials: 'JD'
+} as const;
 
-const Header: React.FC = () => {
-    const {theme, toggleTheme} = useTheme();
-    const [api, contextHolder] = notification.useNotification();
-
-    const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
-
-    const openNotification = () => {
-        api.open({
-            message: 'Notification Title',
-            description:
-                'This is the content of the notification. This is the content of the notification. This is the content of the notification.',
-            icon: <SmileOutlined style={{color: '#108ee9'}}/>,
-        });
-    };
-
+// Custom hooks
+const useClickOutside = (ref: React.RefObject<HTMLElement>, handler: () => void) => {
     useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
+        const handleClickOutside = (event: MouseEvent) => {
+            if (ref.current && !ref.current.contains(event.target as Node)) {
+                handler();
             }
-        }
+        };
 
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [ref, handler]);
+};
+
+const useNotification = () => {
+    const [api, contextHolder] = notification.useNotification();
+
+    const openNotification = useCallback(() => {
+        api.open({
+            message: 'Task Reminder',
+            description: 'You have 3 pending tasks due today. Don\'t forget to complete them!',
+            icon: <SmileOutlined style={{ color: '#3b82f6' }} />,
+            placement: 'topRight',
+            duration: 4.5,
+        });
+    }, [api]);
+
+    return { openNotification, contextHolder };
+};
+
+// Theme-aware styles
+const getThemeStyles = (theme: 'light' | 'dark') => ({
+    header: theme === 'dark'
+        ? 'bg-slate-900/95 border-slate-700/50'
+        : 'bg-white/95 border-slate-200/30 shadow-sm',
+
+    searchBar: theme === 'dark'
+        ? 'bg-slate-800/60 border-slate-700/50'
+        : 'bg-slate-50/80 border-slate-200/50',
+
+    button: theme === 'dark'
+        ? 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100/80',
+
+    userProfile: theme === 'dark'
+        ? 'bg-slate-800/60 hover:bg-slate-700/60 border-slate-700/50'
+        : 'bg-gradient-to-r from-blue-50/80 to-indigo-50/80 hover:from-blue-100/80 hover:to-indigo-100/80 border-blue-200/50 shadow-sm',
+
+    dropdown: theme === 'dark'
+        ? 'bg-slate-800/95 border-slate-700'
+        : 'bg-white/95 border-slate-200 shadow-xl',
+
+    dropdownItem: theme === 'dark'
+        ? 'hover:bg-slate-700 text-slate-200'
+        : 'hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 text-slate-700',
+
+    text: {
+        primary: theme === 'dark' ? 'text-white' : 'text-slate-900',
+        secondary: theme === 'dark' ? 'text-slate-400' : 'text-slate-600',
+        accent: theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
+    }
+});
+
+const Header: React.FC = () => {
+    const { theme, toggleTheme } = useTheme();
+    const { openNotification, contextHolder } = useNotification();
+
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const styles = useMemo(() => getThemeStyles(theme), [theme]);
+
+    useClickOutside(dropdownRef, () => setIsDropdownOpen(false));
+
+    const handleDropdownToggle = useCallback(() => {
+        setIsDropdownOpen(prev => !prev);
     }, []);
 
+    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value);
+    }, []);
 
-    const menuItems = [
-        {icon: User, label: 'Profile', shortcut: '⌘P', badge: null},
-        {icon: Settings, label: 'Settings', shortcut: '⌘S', badge: null},
-        {icon: Heart, label: 'Favorites', shortcut: '⌘F', badge: null},
-        {icon: Bookmark, label: 'Bookmarks', shortcut: '⌘B', badge: null},
-    ];
+    const menuItems = useMemo(() => [
+        { icon: User, label: 'Profile', action: () => console.log('Profile clicked') },
+        { icon: Settings, label: 'Settings', action: () => console.log('Settings clicked') },
+        { icon: Heart, label: 'Favorites', action: () => console.log('Favorites clicked') },
+        { icon: Bookmark, label: 'Bookmarks', action: () => console.log('Bookmarks clicked') },
+    ], []);
+
+    const handleMenuItemClick = useCallback((action: () => void) => {
+        action();
+        setIsDropdownOpen(false);
+    }, []);
+
+    const SearchInput = ({ isMobile = false }: { isMobile?: boolean }) => (
+        <div className={`${isMobile ? 'md:hidden mt-4' : 'hidden md:flex'} items-center ${styles.searchBar} backdrop-blur-sm rounded-xl px-4 py-2.5 ${isMobile ? '' : 'max-w-md flex-1 mx-8'} border transition-all duration-300`}>
+            <Search className={`h-5 w-5 mr-3 ${styles.text.secondary} transition-colors duration-300`} />
+            <input
+                type="text"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                placeholder="Search todos..."
+                className={`bg-transparent flex-1 outline-none transition-colors duration-300 ${styles.text.primary} placeholder-slate-400`}
+            />
+        </div>
+    );
 
     return (
         <>
-            <header className={`${
-                theme === 'dark'
-                    ? 'bg-gray-900/90 border-gray-700/50'
-                    : 'bg-white/90 border-gray-200/50 shadow-sm'
-            } backdrop-blur-lg border-b px-4 sm:px-6 py-4 sticky top-0 z-50 transition-all duration-300`}>
-
+            <header className={`${styles.header} backdrop-blur-lg border-b px-4 sm:px-6 py-4 sticky top-0 z-50 transition-all duration-300`}>
                 <div className="flex items-center justify-between max-w-7xl mx-auto">
 
-                    {/* Logo and Title */}
+                    {/* Logo Section */}
                     <div className="flex items-center space-x-3">
                         <div className={`gradient-primary p-2 rounded-xl shadow-lg ${
-                            theme === 'light' ? 'shadow-blue-200/50' : ''
+                            theme === 'light' ? 'shadow-blue-300/30' : ''
                         }`}>
-                            <CheckSquare className="h-6 w-6 text-white"/>
+                            <CheckSquare className="h-6 w-6 text-white" />
                         </div>
                         <div className="hidden sm:block">
-                            <h1 className={`text-xl font-bold ${
-                                theme === 'dark' ? 'text-white' : 'text-gray-900'
-                            } transition-colors duration-300`}>
+                            <h1 className={`text-xl font-bold ${styles.text.primary} transition-colors duration-300`}>
                                 TodoMaster
                             </h1>
-                            <p className={`text-sm ${
-                                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                            } transition-colors duration-300`}>
+                            <p className={`text-sm ${styles.text.secondary} transition-colors duration-300`}>
                                 Stay organized, stay productive
                             </p>
                         </div>
                     </div>
 
-                    {/* Search Bar - Desktop */}
-                    <div className={`hidden md:flex items-center ${
-                        theme === 'dark'
-                            ? 'bg-gray-800/60 border-gray-700/50'
-                            : 'bg-gray-50/80 border-gray-300/50'
-                    } backdrop-blur-sm rounded-xl px-4 py-2.5 max-w-md flex-1 mx-8 border transition-all duration-300`}>
-                        <Search className={`h-5 w-5 mr-3 ${
-                            theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                        } transition-colors duration-300`}/>
-                        <input
-                            type="text"
-                            placeholder="Search todos..."
-                            className={`bg-transparent flex-1 outline-none transition-colors duration-300 ${
-                                theme === 'dark'
-                                    ? 'text-white placeholder-gray-400'
-                                    : 'text-gray-900 placeholder-gray-500'
-                            }`}
-                        />
-                    </div>
+                    {/* Desktop Search */}
+                    <SearchInput />
 
-                    {/* Actions */}
+                    {/* Action Buttons */}
                     <div className="flex items-center space-x-2 sm:space-x-3">
 
-                        {/* Mobile Search Button */}
-                        <button className={`md:hidden p-2 rounded-lg btn-hover transition-all duration-200 ${
-                            theme === 'dark'
-                                ? 'text-gray-400 hover:text-white hover:bg-gray-800/60'
-                                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100/80'
-                        }`}>
-                            <Search className="h-5 w-5"/>
+                        {/* Mobile Search Toggle */}
+                        <button className={`md:hidden p-2 rounded-lg btn-hover transition-all duration-200 ${styles.button}`}>
+                            <Search className="h-5 w-5" />
                         </button>
 
                         {/* Theme Toggle */}
                         <button
-                            className={`p-2 rounded-lg btn-hover transition-all duration-200 ${
-                                theme === 'dark'
-                                    ? 'text-gray-400 hover:text-white hover:bg-gray-800/60'
-                                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100/80'
-                            }`}
                             onClick={toggleTheme}
+                            className={`p-2 rounded-lg btn-hover transition-all duration-200 ${styles.button}`}
                             title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+                            aria-label="Toggle theme"
                         >
-                            {theme === 'light' ? (
-                                <Moon className="h-5 w-5"/>
-                            ) : (
-                                <Sun className="h-5 w-5"/>
-                            )}
+                            {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
                         </button>
 
                         {/* Notifications */}
-                        <button className={`relative p-2 rounded-lg btn-hover transition-all duration-200 ${
-                            theme === 'dark'
-                                ? 'text-gray-400 hover:text-white hover:bg-gray-800/60'
-                                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100/80'
-                        }`} onClick={openNotification}>
-                            <Bell className="h-5 w-5"/>
-                            <span
-                                className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse shadow-lg"></span>
+                        <button
+                            onClick={openNotification}
+                            className={`relative p-2 rounded-lg btn-hover transition-all duration-200 ${styles.button}`}
+                            aria-label="View notifications"
+                        >
+                            <Bell className="h-5 w-5" />
+                            <span className="absolute -top-1 -right-1 h-3 w-3 bg-gradient-to-r from-red-500 to-pink-500 rounded-full animate-pulse shadow-lg" />
                         </button>
 
                         {/* Settings */}
-                        <button className={`hidden sm:flex p-2 rounded-lg btn-hover transition-all duration-200 ${
-                            theme === 'dark'
-                                ? 'text-gray-400 hover:text-white hover:bg-gray-800/60'
-                                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100/80'
-                        }`}>
-                            <Settings className="h-5 w-5"/>
+                        <button className={`hidden sm:flex p-2 rounded-lg btn-hover transition-all duration-200 ${styles.button}`}>
+                            <Settings className="h-5 w-5" />
                         </button>
 
-                        {/* User Profile */}
-                        {/* User Profile */}
+                        {/* User Profile Dropdown */}
                         <div className="relative" ref={dropdownRef}>
                             <button
-                                onClick={() => setIsOpen(!isOpen)}
-                                className={`flex items-center justify-start space-x-2 backdrop-blur-sm rounded-lg px-3 py-2 cursor-pointer transition-all duration-300 border ${
-                                    theme === 'dark'
-                                        ? 'bg-gray-800/60 hover:bg-gray-700/60 border-gray-700/50'
-                                        : 'bg-gray-50/80 hover:bg-gray-100/80 border-gray-300/50 shadow-sm'
-                                }`}
+                                onClick={handleDropdownToggle}
+                                className={`flex items-center space-x-3 backdrop-blur-sm rounded-xl px-3 py-2 cursor-pointer transition-all duration-300 border ${styles.userProfile}`}
+                                aria-expanded={isDropdownOpen}
+                                aria-haspopup="true"
                             >
-                                <div
-                                    className="w-7 h-7 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
-                                    JD
+                                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-lg">
+                                    {USER_DATA.initials}
                                 </div>
-                                <div className="flex flex-col items-start">
-                                    <div
-                                        className={`text-sm hidden sm:block font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
-                                        style={{fontSize: '14px'}}>
-                                        John Doe
-                                    </div>
-                                    <div
-                                        className={`text-sm hidden sm:block font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
-                                        style={{fontSize: '14px'}}>
-                                        john@example.com
-                                    </div>
+                                <div className="hidden sm:flex flex-col items-start">
+                                    <span className={`text-sm font-semibold ${styles.text.primary}`}>
+                                        {USER_DATA.name}
+                                    </span>
+                                    <span className={`text-xs ${styles.text.secondary}`}>
+                                        {USER_DATA.email}
+                                    </span>
                                 </div>
-                                <ChevronDown
-                                    className={`w-5 h-5 transition-transform duration-300 ${
-                                        isOpen ? 'rotate-180' : ''
-                                    } ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
-                                />
+                                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${
+                                    isDropdownOpen ? 'rotate-180' : ''
+                                } ${styles.text.accent}`} />
                             </button>
 
-                            {/* Dropdown Content */}
-                            {isOpen && (
-                                <div className="absolute top-full right-0 mt-2 w-64 z-50">
-                                    <div
-                                        className={`rounded-2xl shadow-2xl border backdrop-blur-sm overflow-hidden ${
-                                            theme === 'dark'
-                                                ? 'bg-gray-800/95 border-gray-700 text-white'
-                                                : 'bg-white/95 border-gray-200 text-gray-900'
-                                        }`}
-                                    >
+                            {/* Dropdown Menu */}
+                            {isDropdownOpen && (
+                                <div className="absolute top-full right-0 mt-2 w-64 z-50 animate-slideInRight">
+                                    <div className={`rounded-2xl border backdrop-blur-sm overflow-hidden ${styles.dropdown}`}>
                                         <div className="p-2">
                                             {menuItems.map((item, index) => (
                                                 <button
                                                     key={index}
-                                                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group ${
-                                                        theme === 'dark' ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-100 text-gray-900'
-                                                    }`}
-                                                    onClick={() => setIsOpen(false)}
+                                                    onClick={() => handleMenuItemClick(item.action)}
+                                                    className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${styles.dropdownItem}`}
                                                 >
-                                                    <div className="flex items-center space-x-3">
-                                                        <div className={`p-2 rounded-lg transition-colors duration-200 ${
-                                                            theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'
-                                                        }`}>
-                                                            <item.icon className={`w-4 h-4 ${
-                                                                theme === 'dark' ? 'text-white' : 'text-gray-900'
-                                                            }`}/>
-                                                        </div>
-                                                        <span className="font-medium">{item.label}</span>
+                                                    <div className={`p-2 rounded-lg mr-3 ${
+                                                        theme === 'dark' ? 'bg-slate-700' : 'bg-slate-100'
+                                                    }`}>
+                                                        <item.icon className="w-4 h-4" />
                                                     </div>
+                                                    <span className="font-medium">{item.label}</span>
                                                 </button>
                                             ))}
                                         </div>
 
                                         <div className={`mx-2 border-t ${
-                                            theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
-                                        }`}/>
+                                            theme === 'dark' ? 'border-slate-700' : 'border-slate-200'
+                                        }`} />
 
                                         <div className="p-2">
                                             <button
-                                                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group ${
-                                                    theme === 'dark' ? 'hover:bg-red-900/20 text-red-400' : 'hover:bg-red-50 text-red-600'
+                                                onClick={() => handleMenuItemClick(() => console.log('Sign out'))}
+                                                className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${
+                                                    theme === 'dark'
+                                                        ? 'hover:bg-red-900/20 text-red-400'
+                                                        : 'hover:bg-red-50 text-red-600'
                                                 }`}
-                                                onClick={() => setIsOpen(false)}
                                             >
-                                                <div className="flex items-center space-x-3">
-                                                    <div className={`p-2 rounded-lg transition-colors duration-200 ${
-                                                        theme === 'dark'
-                                                            ? 'bg-red-900/20 group-hover:bg-red-900/30'
-                                                            : 'bg-red-100 group-hover:bg-red-200'
-                                                    }`}>
-                                                        <LogOut className="w-4 h-4"/>
-                                                    </div>
-                                                    <span className="font-medium">Sign out</span>
+                                                <div className={`p-2 rounded-lg mr-3 ${
+                                                    theme === 'dark' ? 'bg-red-900/20' : 'bg-red-100'
+                                                }`}>
+                                                    <LogOut className="w-4 h-4" />
                                                 </div>
+                                                <span className="font-medium">Sign out</span>
                                             </button>
                                         </div>
                                     </div>
@@ -250,38 +263,14 @@ const Header: React.FC = () => {
                         </div>
 
                         {/* Mobile Menu */}
-                        <button className={`sm:hidden p-2 rounded-lg btn-hover transition-all duration-200 ${
-                            theme === 'dark'
-                                ? 'text-gray-400 hover:text-white hover:bg-gray-800/60'
-                                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100/80'
-                        }`}>
-                            <Menu className="h-5 w-5"/>
+                        <button className={`sm:hidden p-2 rounded-lg btn-hover transition-all duration-200 ${styles.button}`}>
+                            <Menu className="h-5 w-5" />
                         </button>
                     </div>
                 </div>
 
-                {/* Mobile Search Bar */}
-                <div className="md:hidden mt-4">
-                    <div
-                        className={`flex items-center backdrop-blur-sm rounded-xl px-4 py-2.5 border transition-all duration-300 ${
-                            theme === 'dark'
-                                ? 'bg-gray-800/60 border-gray-700/50'
-                                : 'bg-gray-50/80 border-gray-300/50'
-                        }`}>
-                        <Search className={`h-5 w-5 mr-3 transition-colors duration-300 ${
-                            theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                        }`}/>
-                        <input
-                            type="text"
-                            placeholder="Search todos..."
-                            className={`bg-transparent flex-1 outline-none transition-colors duration-300 ${
-                                theme === 'dark'
-                                    ? 'text-white placeholder-gray-400'
-                                    : 'text-gray-900 placeholder-gray-500'
-                            }`}
-                        />
-                    </div>
-                </div>
+                {/* Mobile Search */}
+                <SearchInput isMobile />
             </header>
             {contextHolder}
         </>
